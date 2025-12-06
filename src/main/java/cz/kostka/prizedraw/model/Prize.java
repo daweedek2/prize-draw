@@ -53,6 +53,10 @@ public class Prize {
         this.orderIndex = orderIndex;
     }
 
+    public String getDisplayName() {
+        return "%s. %s".formatted(orderIndex, nazev);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

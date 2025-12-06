@@ -52,7 +52,9 @@ public class DrawController {
             if (personOpt.isPresent()) {
                 DrawResult r = new DrawResult(personOpt.get(), nextPrizeOpt.get());
                 model.addAttribute("vyherce", r.getClovek());
+                model.addAttribute("vyherceId", r.getPerson().getId());
                 model.addAttribute("cena", r.getCena());
+                model.addAttribute("cenaId", r.getPrize().getId());
                 model.addAttribute("moznaJmena", drawService.getEligibleNames(true));
                 return "winnerPage";
             }
@@ -75,7 +77,9 @@ public class DrawController {
             if (personOpt.isPresent()) {
                 DrawResult r = new DrawResult(personOpt.get(), nextPrizeOpt.get());
                 model.addAttribute("vyherce", r.getClovek());
+                model.addAttribute("vyherceId", r.getPerson().getId());
                 model.addAttribute("cena", r.getCena());
+                model.addAttribute("cenaId", r.getPrize().getId());
                 model.addAttribute("moznaJmena", drawService.getEligibleNames(false));
                 return "winnerPage";
             }
@@ -90,10 +94,10 @@ public class DrawController {
     }
 
     @PostMapping("/potvrdit")
-    public String confirm(@RequestParam("vyherce") String vyherce,
-                          @RequestParam("cena") String cena,
+    public String confirm(@RequestParam("vyherceId") Long vyherceId,
+                          @RequestParam("cenaId") Long cenaId,
                           Model model) {
-        drawService.confirmResult(vyherce, cena);
+        drawService.confirmResult(vyherceId, cenaId);
         model.addAttribute("vysledky", drawService.getResults());
         model.addAttribute("ceny", drawService.getAvailablePrizes());
         model.addAttribute("lide", drawService.getAllPeople());

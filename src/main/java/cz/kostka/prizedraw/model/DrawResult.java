@@ -22,7 +22,7 @@ public class DrawResult {
     private String clovek; // person.jmeno v čase losování
 
     @Column(nullable = false)
-    private String cena;   // prize.nazev v čase losování
+    private String cena;   // prize.getDisplayName() v čase losování
 
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
@@ -33,7 +33,7 @@ public class DrawResult {
         this.person = person;
         this.prize = prize;
         this.clovek = person.getJmeno();
-        this.cena = prize.getNazev();
+        this.cena = prize.getDisplayName();
     }
 
     public Long getId() {

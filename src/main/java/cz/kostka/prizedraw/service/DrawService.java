@@ -60,7 +60,7 @@ public class DrawService {
         if (nextPrizeOpt.isEmpty() || eligiblePeople.isEmpty()) return Optional.empty();
         Prize currentPrize = nextPrizeOpt.get();
         Person winner = eligiblePeople.get(random.nextInt(eligiblePeople.size()));
-        return Optional.of(new PreviewDTO(winner.getId(), winner.getJmeno(), currentPrize.getNazev()));
+        return Optional.of(new PreviewDTO(winner.getId(), winner.getJmeno(), currentPrize.getDisplayName()));
     }
 
     public Optional<PreviewDTO> previewAllServerDriven() {
@@ -69,7 +69,7 @@ public class DrawService {
         if (nextPrizeOpt.isEmpty() || people.isEmpty()) return Optional.empty();
         Prize currentPrize = nextPrizeOpt.get();
         Person winner = people.get(random.nextInt(people.size()));
-        return Optional.of(new PreviewDTO(winner.getId(), winner.getJmeno(), currentPrize.getNazev()));
+        return Optional.of(new PreviewDTO(winner.getId(), winner.getJmeno(), currentPrize.getDisplayName()));
     }
 
     // Fallback preview (původní logika) — doplněno, aby controller kompiloval
@@ -92,11 +92,9 @@ public class DrawService {
     }
 
     @Transactional
-    public Optional<DrawResult> confirmResult(String vyherce, String cena) {
-        Optional<Person> personOpt = personRepository.findByJmeno(vyherce);
-        Optional<Prize> prizeOpt = prizeRepository.findAll().stream()
-                .filter(prize -> Objects.equals(prize.getNazev(), cena))
-                .findFirst();
+    public Optional<DrawResult> confirmResult(Long vyherceId, Long cenaId) {
+        Optional<Person> personOpt = personRepository.findById(vyherceId);
+        Optional<Prize> prizeOpt = prizeRepository.findById(cenaId);
 
         if (personOpt.isEmpty() || prizeOpt.isEmpty()) {
             return Optional.empty();
@@ -130,6 +128,6 @@ public class DrawService {
     }
 
     public Optional<String> getNextPrizeName() {
-        return getNextAvailablePrize().map(Prize::getNazev);
+        return getNextAvailablePrize().map(Prize::getDisplayName);
     }
 }
