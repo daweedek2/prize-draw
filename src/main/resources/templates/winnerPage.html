@@ -10,46 +10,38 @@
 
 <h1>Výsledek losování</h1>
 
-<div class="centered">
-    <h2>Výherce</h2>
-    <p id="vyherceText" class="winner-name" th:text="${vyherce}"></p>
+<div class="winner-card">
+    <h2 class="winner-title">Máme výherce!</h2>
 
-    <h2>Cena</h2>
-    <p id="cenaText" class="winner-prize" th:text="${cena}"></p>
+    <div class="centered">
+        <p id="vyherceText" class="winner-name" th:text="${vyherce}"></p>
+    </div>
+
+    <div class="centered">
+        <div class="winner-prize-label">Vyhrává cenu:</div>
+        <div id="cenaText" class="winner-prize" th:text="${cena}"></div>
+    </div>
+
+    <div class="winner-meta" th:if="${#strings.isEmpty(vyherce) || vyherce == 'N/A'}">
+        Losování nelze provést – zkontrolujte seznam lidí nebo cen.
+    </div>
 </div>
 
-<section class="button-group-center">
-
+<section class="button-group-center" style="margin-top:22px;">
+    <!-- potvrdit -->
     <form th:action="@{/potvrdit}" method="post" class="inline-form">
         <input type="hidden" name="cena" th:value="${cena}">
         <input type="hidden" name="vyherce" th:value="${vyherce}">
         <button type="submit" class="button-success">Potvrdit</button>
     </form>
 
+    <!-- losovat znovu -->
     <form th:action="@{/losovat-znovu}" method="post" class="inline-form">
         <button type="submit" class="button-secondary">Losovat znovu</button>
     </form>
-
 </section>
 
-<script>
-    function startShuffleAnimation(elementId, values, duration = 20) {
-        const el = document.getElementById(elementId);
-        let counter = 0;
-        const interval = setInterval(() => {
-            el.textContent = values[Math.floor(Math.random() * values.length)];
-            counter++;
-            if (counter > duration) {
-                clearInterval(interval);
-            }
-        }, 80);
-    }
-    const moznaJmena = /*[[${moznaJmena}]]*/ [];
-    const mozneCeny  = /*[[${mozneCeny}]]*/ [];
-    if (moznaJmena.length > 0) startShuffleAnimation("vyherceText", moznaJmena);
-    if (mozneCeny.length > 0)  startShuffleAnimation("cenaText", mozneCeny);
-</script>
-
+<!-- Confetti -->
 <script>
     function confetti() {
         const total = 120;

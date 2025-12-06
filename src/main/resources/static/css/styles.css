@@ -10,6 +10,7 @@
     --secondary-dark: #546e7a;
     --success: #2e7d32;
     --success-dark: #1b5e20;
+    --accent: #ffb300;
     --shadow: rgba(0,0,0,0.15);
 }
 
@@ -77,6 +78,7 @@ button {
 }
 button:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 4px 10px var(--shadow); }
 button:active { transform: translateY(0); }
+button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
 .button-danger { background: var(--danger); } .button-danger:hover { background: var(--danger-dark); }
 .button-secondary { background: var(--secondary); } .button-secondary:hover { background: var(--secondary-dark); }
 .button-success { background: var(--success); } .button-success:hover { background: var(--success-dark); }
@@ -101,9 +103,64 @@ a.button-link > button { pointer-events: none; }
 .badge-warning { background: #f57c00; }
 .badge-neutral { background: var(--secondary); }
 
-/* Winner page text */
-.winner-name { font-size: clamp(20px, 5vw, 28px); font-weight: bold; margin: 6px 0; }
-.winner-prize { font-size: clamp(18px, 4.5vw, 24px); margin: 6px 0; }
+/* Winner highlight */
+.winner-card {
+    margin: 20px auto;
+    max-width: 720px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    padding: 18px;
+    border: 3px solid var(--accent);
+}
+.winner-title {
+    text-align: center;
+    font-size: clamp(22px, 5.8vw, 30px);
+    margin: 0 0 10px;
+    color: var(--primary);
+    font-weight: 700;
+}
+.winner-name {
+    font-size: clamp(26px, 6.4vw, 36px);
+    font-weight: 800;
+    margin: 6px 0 12px;
+    color: #111;
+    text-align: center;
+    letter-spacing: 0.4px;
+    animation: pulse 1.6s ease-in-out 2;
+}
+.winner-prize-label {
+    text-align: center;
+    font-size: clamp(16px, 4.2vw, 20px);
+    color: #555;
+    margin: 8px 0 4px;
+    font-weight: 600;
+}
+.winner-prize {
+    font-size: clamp(22px, 5.2vw, 28px);
+    margin: 4px auto 10px;
+    color: #111;
+    text-align: center;
+    font-weight: 800;
+    display: inline-block;
+    background: #fff3cd; /* warning-like */
+    color: #7a5a00;
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 2px solid #ffe08a;
+}
+.winner-meta {
+    text-align: center;
+    color: #777;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 179, 0, 0.7); }
+    70% { transform: scale(1.03); box-shadow: 0 0 0 16px rgba(255, 179, 0, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 179, 0, 0); }
+}
 
 /* Admin nav */
 .admin-header { text-align: center; margin-bottom: 10px; }

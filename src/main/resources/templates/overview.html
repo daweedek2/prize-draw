@@ -5,6 +5,32 @@
     <title>Losovací aplikace</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <style>
+        /* Reveal overlay styles */
+        .reveal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+            display: none; align-items: center; justify-content: center;
+            z-index: 9999; padding: 16px;
+        }
+        .reveal-overlay.open { display: flex; }
+        .reveal-card {
+            background: #fff; border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+            padding: 22px; width: 96vw; max-width: 520px; text-align: center; position: relative;
+            border: 3px solid #ffb300;
+        }
+        .reveal-title { font-size: 18px; color: #666; margin: 0 0 8px; }
+        .reveal-name {
+            font-size: clamp(26px, 6.4vw, 36px); font-weight: 800; letter-spacing: 0.4px; margin: 6px 0 10px; color: #111;
+        }
+        .reveal-prize {
+            font-size: 16px; color: #555; margin-top: 6px;
+        }
+        .reveal-spinner {
+            width: 54px; height: 54px; border-radius: 50%; border: 5px solid #eee; border-top-color: #005bbb;
+            margin: 12px auto 0; animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
 
@@ -35,6 +61,9 @@
     <p th:if="${nextPrize != null}">
         Aktuální cena k losování: <strong th:text="${nextPrize}"></strong>
     </p>
+    <p th:if="${nextPrize == null}">
+        Všechny ceny jsou již vylosované. Losování je ukončeno.
+    </p>
     <ul class="list-responsive" id="available-prizes">
         <li th:each="c : ${ceny}" th:text="${c.nazev}"></li>
     </ul>
@@ -50,12 +79,16 @@
 <section class="button-group-center">
     <form th:action="@{/losovat}" method="post" class="inline-form">
         <input type="hidden" name="previewPersonId" id="preview-person-id-available">
-        <button type="submit" id="btn-draw">Losovat</button>
+        <button type="submit" id="btn-draw"
+                th:disabled="${nextPrize == null}"
+                th:attr="aria-disabled=${nextPrize == null}">Losovat</button>
     </form>
 
     <form th:action="@{/losovat-ze-vsech}" method="post" class="inline-form">
         <input type="hidden" name="previewPersonId" id="preview-person-id-all">
-        <button type="submit" id="btn-draw-all">Losovat ze všech</button>
+        <button type="submit" id="btn-draw-all"
+                th:disabled="${nextPrize == null}"
+                th:attr="aria-disabled=${nextPrize == null}">Losovat ze všech</button>
     </form>
 </section>
 
@@ -68,7 +101,7 @@
     </a>
 </section>
 
-<!-- Skryté seznamy párů pro kolo štěstí (zajišťují synchronizaci indexů) -->
+<!-- Párová data pro animaci odhalení -->
 <ul id="eligible-without-pairs" style="display:none;">
     <li th:each="p : ${eligibleWithoutPrizePairs}" th:data-id="${p.id}" th:text="${p.name}"></li>
 </ul>
@@ -76,22 +109,20 @@
     <li th:each="p : ${eligibleAllPairs}" th:data-id="${p.id}" th:text="${p.name}"></li>
 </ul>
 
-<!-- Modal pro Kolo štěstí (točí se jména lidí) -->
-<div id="wheel-modal" class="wheel-modal" aria-hidden="true">
-    <div class="wheel-content">
-        <canvas id="wheel-canvas" width="360" height="360"></canvas>
-        <div class="wheel-pointer">▼</div>
-        <p class="wheel-hint">
-            Losujeme pro cenu: <strong th:text="${nextPrize}">—</strong>
-        </p>
+<!-- Overlay pro odhalení vítěze -->
+<div id="reveal-overlay" class="reveal-overlay" aria-hidden="true">
+    <div class="reveal-card">
+        <div class="reveal-title">Losujeme…</div>
+        <div id="reveal-name" class="reveal-name">—</div>
+        <div class="reveal-prize">Cena: <strong th:text="${nextPrize}">—</strong></div>
+        <div class="reveal-spinner"></div>
     </div>
 </div>
 
 <script th:inline="javascript">
     (function(){
-        const modal = document.getElementById('wheel-modal');
-        const canvas = document.getElementById('wheel-canvas');
-        const ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('reveal-overlay');
+        const nameEl = document.getElementById('reveal-name');
 
         function readLabelsAndIdsFrom(elemId) {
             const items = Array.from(document.querySelectorAll('#' + elemId + ' li'));
@@ -103,120 +134,43 @@
         const withoutPairs = readLabelsAndIdsFrom('eligible-without-pairs');
         const allPairs = readLabelsAndIdsFrom('eligible-all-pairs');
 
-        function drawWheel(labels, rotation) {
-            const size = canvas.width;
-            const radius = size / 2;
-            ctx.clearRect(0, 0, size, size);
-
-            const count = labels.length;
-            if (count === 0) return;
-            const anglePer = (Math.PI * 2) / count;
-
-            ctx.save();
-            ctx.translate(radius, radius);
-            ctx.rotate(rotation);
-
-            for (let i = 0; i < count; i++) {
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.arc(0, 0, radius - 6, i * anglePer, (i + 1) * anglePer);
-                ctx.closePath();
-                const hue = (i * (360 / count)) % 360;
-                ctx.fillStyle = `hsl(${hue}, 80%, 65%)`;
-                ctx.fill();
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                const midAngle = i * anglePer + anglePer / 2;
-                ctx.save();
-                ctx.rotate(midAngle);
-                ctx.textAlign = 'center';
-                ctx.fillStyle = '#222';
-                ctx.font = '14px Arial';
-                ctx.translate((radius - 42), 0);
-                wrapText(ctx, labels[i], 0, 0, 120, 16);
-                ctx.restore();
-            }
-
-            ctx.restore();
-
-            ctx.beginPath();
-            ctx.arc(radius, radius, 18, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
-            ctx.strokeStyle = '#005bbb';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-        }
-
-        function wrapText(context, text, x, y, maxWidth, lineHeight) {
-            const words = (text || '').split(' ');
-            let line = '';
-            for (let n = 0; n < words.length; n++) {
-                const testLine = line + words[n] + ' ';
-                const metrics = context.measureText(testLine);
-                if (metrics.width > maxWidth && n > 0) {
-                    context.fillText(line, x, y);
-                    line = words[n] + ' ';
-                    y += lineHeight;
-                } else {
-                    line = testLine;
-                }
-            }
-            context.fillText(line, x, y);
-        }
-
-        // Animace cíleného indexu (server určí vítěze)
-        function spinToIndex(labels, targetIndex, onDone) {
-            if (!labels || labels.length === 0) { onDone && onDone(); return; }
-            const anglePer = (Math.PI * 2) / labels.length;
-            const targetAngle = (Math.PI * 3/2) - (targetIndex * anglePer + anglePer/2);
-            const totalSpins = (Math.PI * 2) * (3 + Math.random());
-            const finalRotation = totalSpins + targetAngle;
-            const duration = 2600;
-            const start = performance.now();
-
-            function animate(now) {
-                const t = Math.min(1, (now - start) / duration);
-                const eased = 1 - Math.pow(1 - t, 3);
-                const currentRot = eased * finalRotation;
-                drawWheel(labels, currentRot);
-                if (t < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    onDone && onDone(targetIndex, labels[targetIndex]);
-                }
-            }
-            requestAnimationFrame(animate);
-        }
-
         async function fetchPreview(mode) {
             const res = await fetch(`/api/preview?mode=${encodeURIComponent(mode)}`, { method: 'GET' });
             if (!res.ok) throw new Error('Preview API failed');
             return await res.json(); // { personId, name, prizeName }
         }
 
-        function showWheelServerDriven(pairs, mode, form, hiddenInputEl) {
+        function shuffleReveal(labels, finalName, durationMs = 1200) {
+            if (!labels || labels.length === 0) return;
+            overlay.classList.add('open');
+            const start = performance.now();
+            function step(now) {
+                const t = Math.min(1, (now - start) / durationMs);
+                const idx = Math.floor(Math.random() * labels.length);
+                nameEl.textContent = labels[idx];
+                if (t < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    nameEl.textContent = finalName || '—';
+                    setTimeout(() => { /* krátká pauza před submitem */ }, 100);
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        function runServerDriven(mode, pairs, form, hiddenInputEl) {
             const { labels, ids } = pairs;
             if (!labels || labels.length === 0) { form.submit(); return; }
 
             fetchPreview(mode)
                 .then(({ personId, name }) => {
-                    // najdi index podle jména; fallback: podle ID
-                    let idx = labels.findIndex(l => l === name);
-                    if (idx < 0) idx = ids.findIndex(id => id === Number(personId));
-                    if (idx < 0) { form.submit(); return; }
-
-                    modal.classList.add('open');
-                    drawWheel(labels, 0);
-                    spinToIndex(labels, idx, () => {
-                        if (hiddenInputEl) hiddenInputEl.value = ids[idx] ?? '';
-                        setTimeout(() => {
-                            modal.classList.remove('open');
-                            form.submit();
-                        }, 250);
-                    });
+                    shuffleReveal(labels, name);
+                    // vyplň ID a odešli po krátké pauze (shoda s BE garantována)
+                    hiddenInputEl.value = Number(personId) || '';
+                    setTimeout(() => {
+                        overlay.classList.remove('open');
+                        form.submit();
+                    }, 1400);
                 })
                 .catch(() => form.submit());
         }
@@ -226,16 +180,18 @@
         const hiddenAvailable = document.getElementById('preview-person-id-available');
         const hiddenAll = document.getElementById('preview-person-id-all');
 
-        if (drawForm) {
+        const hasAvailablePrize = /*[[${nextPrize != null}]]*/ false;
+
+        if (hasAvailablePrize && drawForm) {
             drawForm.addEventListener('submit', function(ev) {
                 ev.preventDefault();
-                showWheelServerDriven(withoutPairs, 'available', this, hiddenAvailable);
+                runServerDriven('available', withoutPairs, this, hiddenAvailable);
             });
         }
-        if (drawAllForm) {
+        if (hasAvailablePrize && drawAllForm) {
             drawAllForm.addEventListener('submit', function(ev) {
                 ev.preventDefault();
-                showWheelServerDriven(allPairs, 'all', this, hiddenAll);
+                runServerDriven('all', allPairs, this, hiddenAll);
             });
         }
     })();

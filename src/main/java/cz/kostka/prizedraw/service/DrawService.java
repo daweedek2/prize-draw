@@ -30,9 +30,7 @@ public class DrawService {
         this.drawResultRepository = drawResultRepository;
     }
 
-    public List<Person> getAllPeople() {
-        return personRepository.findAll();
-    }
+    public List<Person> getAllPeople() { return personRepository.findAll(); }
 
     public List<Person> getPeopleWithoutPrize() {
         return personRepository.findAll().stream()
@@ -42,9 +40,7 @@ public class DrawService {
 
     public List<EligiblePersonDTO> getEligiblePairs(boolean onlyWithoutPrize) {
         List<Person> src = onlyWithoutPrize ? getPeopleWithoutPrize() : personRepository.findAll();
-        return src.stream()
-                .map(p -> new EligiblePersonDTO(p.getId(), p.getJmeno()))
-                .toList();
+        return src.stream().map(p -> new EligiblePersonDTO(p.getId(), p.getJmeno())).toList();
     }
 
     public List<Prize> getAvailablePrizes() {
@@ -55,11 +51,9 @@ public class DrawService {
         return prizeRepository.findFirstByAssignedFalseOrderByOrderIndexAsc();
     }
 
-    public List<DrawResult> getResults() {
-        return drawResultRepository.findAll();
-    }
+    public List<DrawResult> getResults() { return drawResultRepository.findAll(); }
 
-    // Serverem řízený preview: vrátí vítěze (ID + jméno) a aktuální cenu
+    // Serverem řízený preview
     public Optional<PreviewDTO> previewAvailableServerDriven() {
         Optional<Prize> nextPrizeOpt = getNextAvailablePrize();
         List<Person> eligiblePeople = getPeopleWithoutPrize();
@@ -78,7 +72,7 @@ public class DrawService {
         return Optional.of(new PreviewDTO(winner.getId(), winner.getJmeno(), currentPrize.getNazev()));
     }
 
-    // Původní preview metody (fallback)
+    // Fallback preview (původní logika) — doplněno, aby controller kompiloval
     public Optional<DrawResult> previewSequentialFromAvailable() {
         Optional<Prize> nextPrizeOpt = getNextAvailablePrize();
         List<Person> eligiblePeople = getPeopleWithoutPrize();
