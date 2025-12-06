@@ -14,6 +14,9 @@ import java.util.*;
 @Service
 public class DrawService {
 
+    public record EligiblePersonDTO(Long id, String name) {}
+    public record PreviewDTO(Long personId, String name, String prizeName) {}
+
     private final PersonRepository personRepository;
     private final PrizeRepository prizeRepository;
     private final DrawResultRepository drawResultRepository;
@@ -37,6 +40,13 @@ public class DrawService {
                 .toList();
     }
 
+    public List<EligiblePersonDTO> getEligiblePairs(boolean onlyWithoutPrize) {
+        List<Person> src = onlyWithoutPrize ? getPeopleWithoutPrize() : personRepository.findAll();
+        return src.stream()
+                .map(p -> new EligiblePersonDTO(p.getId(), p.getJmeno()))
+                .toList();
+    }
+
     public List<Prize> getAvailablePrizes() {
         return prizeRepository.findByAssignedFalseOrderByOrderIndexAsc();
     }
@@ -49,29 +59,41 @@ public class DrawService {
         return drawResultRepository.findAll();
     }
 
-    // Losování: pro první dostupnou cenu, mezi lidmi bez výhry
+    // Serverem řízený preview: vrátí vítěze (ID + jméno) a aktuální cenu
+    public Optional<PreviewDTO> previewAvailableServerDriven() {
+        Optional<Prize> nextPrizeOpt = getNextAvailablePrize();
+        List<Person> eligiblePeople = getPeopleWithoutPrize();
+        if (nextPrizeOpt.isEmpty() || eligiblePeople.isEmpty()) return Optional.empty();
+        Prize currentPrize = nextPrizeOpt.get();
+        Person winner = eligiblePeople.get(random.nextInt(eligiblePeople.size()));
+        return Optional.of(new PreviewDTO(winner.getId(), winner.getJmeno(), currentPrize.getNazev()));
+    }
+
+    public Optional<PreviewDTO> previewAllServerDriven() {
+        Optional<Prize> nextPrizeOpt = getNextAvailablePrize();
+        List<Person> people = personRepository.findAll();
+        if (nextPrizeOpt.isEmpty() || people.isEmpty()) return Optional.empty();
+        Prize currentPrize = nextPrizeOpt.get();
+        Person winner = people.get(random.nextInt(people.size()));
+        return Optional.of(new PreviewDTO(winner.getId(), winner.getJmeno(), currentPrize.getNazev()));
+    }
+
+    // Původní preview metody (fallback)
     public Optional<DrawResult> previewSequentialFromAvailable() {
         Optional<Prize> nextPrizeOpt = getNextAvailablePrize();
         List<Person> eligiblePeople = getPeopleWithoutPrize();
-
         if (nextPrizeOpt.isEmpty() || eligiblePeople.isEmpty()) return Optional.empty();
-
         Prize currentPrize = nextPrizeOpt.get();
         Person winner = eligiblePeople.get(random.nextInt(eligiblePeople.size()));
-
         return Optional.of(new DrawResult(winner, currentPrize));
     }
 
-    // Losování ze všech: pro první dostupnou cenu, mezi všemi lidmi
     public Optional<DrawResult> previewSequentialFromAll() {
         Optional<Prize> nextPrizeOpt = getNextAvailablePrize();
         List<Person> people = personRepository.findAll();
-
         if (nextPrizeOpt.isEmpty() || people.isEmpty()) return Optional.empty();
-
         Prize currentPrize = nextPrizeOpt.get();
         Person winner = people.get(random.nextInt(people.size()));
-
         return Optional.of(new DrawResult(winner, currentPrize));
     }
 
@@ -94,6 +116,18 @@ public class DrawService {
         drawResultRepository.save(result);
 
         return Optional.of(result);
+    }
+
+    public Optional<Person> findPersonById(Long id, boolean onlyWithoutPrize) {
+        if (id == null) return Optional.empty();
+        Optional<Person> pOpt = personRepository.findById(id);
+        if (pOpt.isEmpty()) return Optional.empty();
+        Person p = pOpt.get();
+        if (onlyWithoutPrize) {
+            boolean hasWin = !drawResultRepository.findByPerson(p).isEmpty();
+            if (hasWin) return Optional.empty();
+        }
+        return Optional.of(p);
     }
 
     public List<String> getEligibleNames(boolean onlyWithoutPrize) {

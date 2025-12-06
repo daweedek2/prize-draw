@@ -49,10 +49,12 @@
 
 <section class="button-group-center">
     <form th:action="@{/losovat}" method="post" class="inline-form">
+        <input type="hidden" name="previewPersonId" id="preview-person-id-available">
         <button type="submit" id="btn-draw">Losovat</button>
     </form>
 
     <form th:action="@{/losovat-ze-vsech}" method="post" class="inline-form">
+        <input type="hidden" name="previewPersonId" id="preview-person-id-all">
         <button type="submit" id="btn-draw-all">Losovat ze všech</button>
     </form>
 </section>
@@ -65,6 +67,14 @@
         <button type="button">Administrace cen</button>
     </a>
 </section>
+
+<!-- Skryté seznamy párů pro kolo štěstí (zajišťují synchronizaci indexů) -->
+<ul id="eligible-without-pairs" style="display:none;">
+    <li th:each="p : ${eligibleWithoutPrizePairs}" th:data-id="${p.id}" th:text="${p.name}"></li>
+</ul>
+<ul id="eligible-all-pairs" style="display:none;">
+    <li th:each="p : ${eligibleAllPairs}" th:data-id="${p.id}" th:text="${p.name}"></li>
+</ul>
 
 <!-- Modal pro Kolo štěstí (točí se jména lidí) -->
 <div id="wheel-modal" class="wheel-modal" aria-hidden="true">
@@ -83,8 +93,15 @@
         const canvas = document.getElementById('wheel-canvas');
         const ctx = canvas.getContext('2d');
 
-        const eligibleWithoutPrize = /*[[${eligibleWithoutPrize}]]*/ [];
-        const eligibleAll = /*[[${eligibleAll}]]*/ [];
+        function readLabelsAndIdsFrom(elemId) {
+            const items = Array.from(document.querySelectorAll('#' + elemId + ' li'));
+            const labels = items.map(li => li.textContent.trim());
+            const ids = items.map(li => Number(li.dataset.id));
+            return { labels, ids };
+        }
+
+        const withoutPairs = readLabelsAndIdsFrom('eligible-without-pairs');
+        const allPairs = readLabelsAndIdsFrom('eligible-all-pairs');
 
         function drawWheel(labels, rotation) {
             const size = canvas.width;
@@ -150,16 +167,13 @@
             context.fillText(line, x, y);
         }
 
-        function spin(labels, onDone) {
+        // Animace cíleného indexu (server určí vítěze)
+        function spinToIndex(labels, targetIndex, onDone) {
             if (!labels || labels.length === 0) { onDone && onDone(); return; }
-
-            const targetIndex = Math.floor(Math.random() * labels.length);
             const anglePer = (Math.PI * 2) / labels.length;
             const targetAngle = (Math.PI * 3/2) - (targetIndex * anglePer + anglePer/2);
-
             const totalSpins = (Math.PI * 2) * (3 + Math.random());
             const finalRotation = totalSpins + targetAngle;
-
             const duration = 2600;
             const start = performance.now();
 
@@ -177,31 +191,51 @@
             requestAnimationFrame(animate);
         }
 
-        function showWheel(labels, form) {
+        async function fetchPreview(mode) {
+            const res = await fetch(`/api/preview?mode=${encodeURIComponent(mode)}`, { method: 'GET' });
+            if (!res.ok) throw new Error('Preview API failed');
+            return await res.json(); // { personId, name, prizeName }
+        }
+
+        function showWheelServerDriven(pairs, mode, form, hiddenInputEl) {
+            const { labels, ids } = pairs;
             if (!labels || labels.length === 0) { form.submit(); return; }
-            modal.classList.add('open');
-            drawWheel(labels, 0);
-            spin(labels, () => {
-                setTimeout(() => {
-                    modal.classList.remove('open');
-                    form.submit();
-                }, 250);
-            });
+
+            fetchPreview(mode)
+                .then(({ personId, name }) => {
+                    // najdi index podle jména; fallback: podle ID
+                    let idx = labels.findIndex(l => l === name);
+                    if (idx < 0) idx = ids.findIndex(id => id === Number(personId));
+                    if (idx < 0) { form.submit(); return; }
+
+                    modal.classList.add('open');
+                    drawWheel(labels, 0);
+                    spinToIndex(labels, idx, () => {
+                        if (hiddenInputEl) hiddenInputEl.value = ids[idx] ?? '';
+                        setTimeout(() => {
+                            modal.classList.remove('open');
+                            form.submit();
+                        }, 250);
+                    });
+                })
+                .catch(() => form.submit());
         }
 
         const drawForm = document.querySelector('form[action="/losovat"]');
         const drawAllForm = document.querySelector('form[action="/losovat-ze-vsech"]');
+        const hiddenAvailable = document.getElementById('preview-person-id-available');
+        const hiddenAll = document.getElementById('preview-person-id-all');
 
         if (drawForm) {
             drawForm.addEventListener('submit', function(ev) {
                 ev.preventDefault();
-                showWheel(eligibleWithoutPrize, this);
+                showWheelServerDriven(withoutPairs, 'available', this, hiddenAvailable);
             });
         }
         if (drawAllForm) {
             drawAllForm.addEventListener('submit', function(ev) {
                 ev.preventDefault();
-                showWheel(eligibleAll, this);
+                showWheelServerDriven(allPairs, 'all', this, hiddenAll);
             });
         }
     })();

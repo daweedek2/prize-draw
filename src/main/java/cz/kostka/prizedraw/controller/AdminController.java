@@ -1,12 +1,16 @@
 package cz.kostka.prizedraw.controller;
 
+import cz.kostka.prizedraw.model.DrawResult;
 import cz.kostka.prizedraw.model.Person;
 import cz.kostka.prizedraw.model.Prize;
+import cz.kostka.prizedraw.repository.DrawResultRepository;
 import cz.kostka.prizedraw.repository.PersonRepository;
 import cz.kostka.prizedraw.repository.PrizeRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Objects;
 
 @Controller
 @RequestMapping("/admin")
@@ -14,10 +18,13 @@ public class AdminController {
 
     private final PersonRepository personRepository;
     private final PrizeRepository prizeRepository;
+    private final DrawResultRepository drawResultRepository;
 
-    public AdminController(PersonRepository personRepository, PrizeRepository prizeRepository) {
+    public AdminController(PersonRepository personRepository, PrizeRepository prizeRepository,
+                           final DrawResultRepository drawResultRepository) {
         this.personRepository = personRepository;
         this.prizeRepository = prizeRepository;
+        this.drawResultRepository = drawResultRepository;
     }
 
     @GetMapping("/people")
@@ -70,6 +77,11 @@ public class AdminController {
             p.setAssigned(false);
             prizeRepository.save(p);
         });
+        drawResultRepository.findAll()
+                .stream()
+                .filter(result -> Objects.equals(result.getPrize().getId(), id))
+                .map(DrawResult::getId)
+                .forEach(drawResultRepository::deleteById);
         return "redirect:/admin/prizes";
     }
 
