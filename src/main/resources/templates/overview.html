@@ -48,7 +48,7 @@
             </thead>
             <tbody>
             <tr th:each="item : ${vysledky}">
-                <td th:text="${item.cena}"></td>
+                <td th:text="${item.prize.orderIndex} + '. ' + ${item.cena}"></td>
                 <td th:text="${item.clovek}"></td>
             </tr>
             </tbody>
@@ -65,7 +65,7 @@
         Všechny ceny jsou již vylosované. Losování je ukončeno.
     </p>
     <ul class="list-responsive" id="available-prizes">
-        <li th:each="c : ${ceny}" th:text="${c.nazev}"></li>
+        <li th:each="c : ${ceny}" th:text="${c.orderIndex} + '. ' + ${c.nazev}"></li>
     </ul>
 </section>
 

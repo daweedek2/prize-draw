@@ -50,7 +50,7 @@ public class AdminController {
 
     @GetMapping("/prizes")
     public String prizesAdmin(Model model) {
-        model.addAttribute("prizes", prizeRepository.findAllByOrderByOrderIndexAsc());
+        model.addAttribute("prizes", prizeRepository.findAllByOrderByOrderIndexDesc());
         model.addAttribute("newPrize", new Prize());
         return "prize_admin";
     }

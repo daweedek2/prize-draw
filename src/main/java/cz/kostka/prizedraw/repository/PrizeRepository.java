@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PrizeRepository extends JpaRepository<Prize, Long> {
-    List<Prize> findByAssignedFalseOrderByOrderIndexAsc();
-    List<Prize> findAllByOrderByOrderIndexAsc();
-    Optional<Prize> findFirstByAssignedFalseOrderByOrderIndexAsc();
+    List<Prize> findByAssignedFalseOrderByOrderIndexDesc();
+    List<Prize> findAllByOrderByOrderIndexDesc();
+    Optional<Prize> findFirstByAssignedFalseOrderByOrderIndexDesc();
 }

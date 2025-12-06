@@ -44,11 +44,11 @@ public class DrawService {
     }
 
     public List<Prize> getAvailablePrizes() {
-        return prizeRepository.findByAssignedFalseOrderByOrderIndexAsc();
+        return prizeRepository.findByAssignedFalseOrderByOrderIndexDesc();
     }
 
     public Optional<Prize> getNextAvailablePrize() {
-        return prizeRepository.findFirstByAssignedFalseOrderByOrderIndexAsc();
+        return prizeRepository.findFirstByAssignedFalseOrderByOrderIndexDesc();
     }
 
     public List<DrawResult> getResults() { return drawResultRepository.findAll(); }
