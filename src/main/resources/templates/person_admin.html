@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Administrace - Lidé</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+
+<h1 class="admin-header">Administrace - Lidé</h1>
+
+<section>
+    <h2>Přidat člověka</h2>
+    <form th:action="@{/admin/people}" method="post" class="form-inline">
+        <input type="text" name="jmeno" th:value="${newPerson.jmeno}" placeholder="Jméno">
+        <button type="submit" class="button-success">Přidat</button>
+    </form>
+</section>
+
+<section>
+    <h2>Seznam lidí</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Jméno</th>
+                <th>Akce</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${people}">
+                <td th:text="${p.id}"></td>
+                <td th:text="${p.jmeno}"></td>
+                <td class="actions">
+                    <form th:action="@{'/admin/people/delete/' + ${p.id}}" method="post" class="inline-form">
+                        <button type="submit" class="button-danger">Smazat</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="admin-nav">
+    <a th:href="@{/}" class="button-link" style="margin-right:10px;">
+        <button type="button" class="button-secondary">Zpět na přehled</button>
+    </a>
+    <a th:href="@{/admin/prizes}" class="button-link">
+        <button type="button">Administrace cen</button>
+    </a>
+</section>
+
+</body>
+</html>

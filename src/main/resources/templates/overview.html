@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Losovací aplikace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+
+<h1>Losování cen</h1>
+
+<section>
+    <h2>Vylosované položky</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+            <tr>
+                <th>Cena</th>
+                <th>Výherce</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="item : ${vysledky}">
+                <td th:text="${item.cena}"></td>
+                <td th:text="${item.clovek}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section>
+    <h2>Dostupné ceny</h2>
+    <p th:if="${nextPrize != null}">
+        Aktuální cena k losování: <strong th:text="${nextPrize}"></strong>
+    </p>
+    <ul class="list-responsive" id="available-prizes">
+        <li th:each="c : ${ceny}" th:text="${c.nazev}"></li>
+    </ul>
+</section>
+
+<section>
+    <h2>Lidé</h2>
+    <ul class="list-responsive">
+        <li th:each="l : ${lide}" th:text="${l.jmeno}"></li>
+    </ul>
+</section>
+
+<section class="button-group-center">
+    <form th:action="@{/losovat}" method="post" class="inline-form">
+        <button type="submit" id="btn-draw">Losovat</button>
+    </form>
+
+    <form th:action="@{/losovat-ze-vsech}" method="post" class="inline-form">
+        <button type="submit" id="btn-draw-all">Losovat ze všech</button>
+    </form>
+</section>
+
+<section class="admin-nav">
+    <a th:href="@{/admin/people}" class="button-link">
+        <button type="button">Administrace lidí</button>
+    </a>
+    <a th:href="@{/admin/prizes}" class="button-link">
+        <button type="button">Administrace cen</button>
+    </a>
+</section>
+
+<!-- Modal pro Kolo štěstí (točí se jména lidí) -->
+<div id="wheel-modal" class="wheel-modal" aria-hidden="true">
+    <div class="wheel-content">
+        <canvas id="wheel-canvas" width="360" height="360"></canvas>
+        <div class="wheel-pointer">▼</div>
+        <p class="wheel-hint">
+            Losujeme pro cenu: <strong th:text="${nextPrize}">—</strong>
+        </p>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    (function(){
+        const modal = document.getElementById('wheel-modal');
+        const canvas = document.getElementById('wheel-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const eligibleWithoutPrize = /*[[${eligibleWithoutPrize}]]*/ [];
+        const eligibleAll = /*[[${eligibleAll}]]*/ [];
+
+        function drawWheel(labels, rotation) {
+            const size = canvas.width;
+            const radius = size / 2;
+            ctx.clearRect(0, 0, size, size);
+
+            const count = labels.length;
+            if (count === 0) return;
+            const anglePer = (Math.PI * 2) / count;
+
+            ctx.save();
+            ctx.translate(radius, radius);
+            ctx.rotate(rotation);
+
+            for (let i = 0; i < count; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius - 6, i * anglePer, (i + 1) * anglePer);
+                ctx.closePath();
+                const hue = (i * (360 / count)) % 360;
+                ctx.fillStyle = `hsl(${hue}, 80%, 65%)`;
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                const midAngle = i * anglePer + anglePer / 2;
+                ctx.save();
+                ctx.rotate(midAngle);
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#222';
+                ctx.font = '14px Arial';
+                ctx.translate((radius - 42), 0);
+                wrapText(ctx, labels[i], 0, 0, 120, 16);
+                ctx.restore();
+            }
+
+            ctx.restore();
+
+            ctx.beginPath();
+            ctx.arc(radius, radius, 18, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            ctx.strokeStyle = '#005bbb';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = (text || '').split(' ');
+            let line = '';
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = context.measureText(testLine);
+                if (metrics.width > maxWidth && n > 0) {
+                    context.fillText(line, x, y);
+                    line = words[n] + ' ';
+                    y += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, y);
+        }
+
+        function spin(labels, onDone) {
+            if (!labels || labels.length === 0) { onDone && onDone(); return; }
+
+            const targetIndex = Math.floor(Math.random() * labels.length);
+            const anglePer = (Math.PI * 2) / labels.length;
+            const targetAngle = (Math.PI * 3/2) - (targetIndex * anglePer + anglePer/2);
+
+            const totalSpins = (Math.PI * 2) * (3 + Math.random());
+            const finalRotation = totalSpins + targetAngle;
+
+            const duration = 2600;
+            const start = performance.now();
+
+            function animate(now) {
+                const t = Math.min(1, (now - start) / duration);
+                const eased = 1 - Math.pow(1 - t, 3);
+                const currentRot = eased * finalRotation;
+                drawWheel(labels, currentRot);
+                if (t < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    onDone && onDone(targetIndex, labels[targetIndex]);
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function showWheel(labels, form) {
+            if (!labels || labels.length === 0) { form.submit(); return; }
+            modal.classList.add('open');
+            drawWheel(labels, 0);
+            spin(labels, () => {
+                setTimeout(() => {
+                    modal.classList.remove('open');
+                    form.submit();
+                }, 250);
+            });
+        }
+
+        const drawForm = document.querySelector('form[action="/losovat"]');
+        const drawAllForm = document.querySelector('form[action="/losovat-ze-vsech"]');
+
+        if (drawForm) {
+            drawForm.addEventListener('submit', function(ev) {
+                ev.preventDefault();
+                showWheel(eligibleWithoutPrize, this);
+            });
+        }
+        if (drawAllForm) {
+            drawAllForm.addEventListener('submit', function(ev) {
+                ev.preventDefault();
+                showWheel(eligibleAll, this);
+            });
+        }
+    })();
+</script>
+
+</body>
+</html>

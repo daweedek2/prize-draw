@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Administrace - Ceny</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+
+<h1 class="admin-header">Administrace - Ceny</h1>
+
+<section>
+    <h2>Přidat cenu</h2>
+    <form th:action="@{/admin/prizes}" method="post" class="form-inline">
+        <input type="text" name="nazev" th:value="${newPrize.nazev}" placeholder="Název ceny">
+        <input type="number" name="orderIndex" th:value="${newPrize.orderIndex}" placeholder="Pořadí (např. 1)">
+        <button type="submit" class="button-success">Přidat</button>
+    </form>
+</section>
+
+<section>
+    <h2>Seznam cen</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Název</th>
+                <th>Pořadí</th>
+                <th>Přiřazeno</th>
+                <th>Akce</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${prizes}">
+                <td th:text="${c.id}"></td>
+                <td>
+                    <form th:action="@{'/admin/prizes/update/' + ${c.id}}" method="post" class="inline-form">
+                        <input type="text" name="nazev" th:value="${c.nazev}" style="width: 220px;">
+                        <input type="number" name="orderIndex" th:value="${c.orderIndex}" style="width: 100px;">
+                        <button type="submit" class="button-secondary">Uložit</button>
+                    </form>
+                </td>
+                <td th:text="${c.orderIndex}"></td>
+                <td>
+                    <span th:class="${c.assigned} ? 'badge badge-success' : 'badge badge-neutral'"
+                          th:text="${c.assigned} ? 'Ano' : 'Ne'"></span>
+                </td>
+                <td class="actions">
+                    <form th:action="@{'/admin/prizes/delete/' + ${c.id}}" method="post" class="inline-form">
+                        <button type="submit" class="button-danger">Smazat</button>
+                    </form>
+                    <form th:if="${c.assigned}" th:action="@{'/admin/prizes/reset/' + ${c.id}}" method="post" class="inline-form">
+                        <button type="submit" class="button-secondary">Reset přiřazení</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="admin-nav">
+    <a th:href="@{/}" class="button-link" style="margin-right:10px;">
+        <button type="button" class="button-secondary">Zpět na přehled</button>
+    </a>
+    <a th:href="@{/admin/people}" class="button-link">
+        <button type="button">Administrace lidí</button>
+    </a>
+</section>
+
+</body>
+</html>
