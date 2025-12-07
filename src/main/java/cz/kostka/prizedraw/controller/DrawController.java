@@ -56,6 +56,7 @@ public class DrawController {
                 model.addAttribute("cena", r.getCena());
                 model.addAttribute("cenaId", r.getPrize().getId());
                 model.addAttribute("moznaJmena", drawService.getEligibleNames(true));
+                model.addAttribute("vysledky", drawService.getResults());
                 return "winnerPage";
             }
         }
@@ -81,6 +82,7 @@ public class DrawController {
                 model.addAttribute("cena", r.getCena());
                 model.addAttribute("cenaId", r.getPrize().getId());
                 model.addAttribute("moznaJmena", drawService.getEligibleNames(false));
+                model.addAttribute("vysledky", drawService.getResults());
                 return "winnerPage";
             }
         }

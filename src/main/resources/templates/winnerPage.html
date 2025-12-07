@@ -41,6 +41,26 @@
     </form>
 </section>
 
+<section>
+    <h2>Vylosované položky</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+            <tr>
+                <th>Cena</th>
+                <th>Výherce</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="item : ${vysledky}">
+                <td th:text="${item.cena}"></td>
+                <td th:text="${item.clovek}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
 <!-- Confetti -->
 <script>
     function confetti() {
