@@ -80,15 +80,15 @@
     <form th:action="@{/losovat}" method="post" class="inline-form">
         <input type="hidden" name="previewPersonId" id="preview-person-id-available">
         <button type="submit" id="btn-draw"
-                th:disabled="${nextPrize == null}"
-                th:attr="aria-disabled=${nextPrize == null}">Losovat</button>
+                th:disabled="${nextPrize == null || eligibleWithoutPrizePairs.isEmpty()}"
+                th:attr="aria-disabled=${nextPrize == null || eligibleWithoutPrizePairs.isEmpty()}">Losovat</button>
     </form>
 
     <form th:action="@{/losovat-ze-vsech}" method="post" class="inline-form">
         <input type="hidden" name="previewPersonId" id="preview-person-id-all">
         <button type="submit" id="btn-draw-all"
-                th:disabled="${nextPrize == null}"
-                th:attr="aria-disabled=${nextPrize == null}">Losovat ze všech</button>
+                th:disabled="${nextPrize == null || eligibleAllPairs.isEmpty()}"
+                th:attr="aria-disabled=${nextPrize == null || eligibleAllPairs.isEmpty()}">Losovat ze všech</button>
     </form>
 </section>
 
