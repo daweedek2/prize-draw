@@ -25,16 +25,15 @@
         <table>
             <thead>
             <tr>
-                <th>ID</th>
-                <th>Název</th>
                 <th>Pořadí</th>
+                <th>Název</th>
                 <th>Přiřazeno</th>
                 <th>Akce</th>
             </tr>
             </thead>
             <tbody>
             <tr th:each="c : ${prizes}">
-                <td th:text="${c.id}"></td>
+                <td th:text="${c.orderIndex}"></td>
                 <td>
                     <form th:action="@{'/admin/prizes/update/' + ${c.id}}" method="post" class="inline-form">
                         <input type="text" name="nazev" th:value="${c.nazev}" style="width: 220px;">
@@ -42,7 +41,6 @@
                         <button type="submit" class="button-secondary">Uložit</button>
                     </form>
                 </td>
-                <td th:text="${c.orderIndex}"></td>
                 <td>
                     <span th:class="${c.assigned} ? 'badge badge-success' : 'badge badge-neutral'"
                           th:text="${c.assigned} ? 'Ano' : 'Ne'"></span>

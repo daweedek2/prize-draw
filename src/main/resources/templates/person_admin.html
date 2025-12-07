@@ -24,14 +24,12 @@
         <table>
             <thead>
             <tr>
-                <th>ID</th>
                 <th>Jméno</th>
                 <th>Akce</th>
             </tr>
             </thead>
             <tbody>
             <tr th:each="p : ${people}">
-                <td th:text="${p.id}"></td>
                 <td th:text="${p.jmeno}"></td>
                 <td class="actions">
                     <form th:action="@{'/admin/people/delete/' + ${p.id}}" method="post" class="inline-form">
