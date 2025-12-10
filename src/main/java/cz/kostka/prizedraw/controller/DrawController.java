@@ -22,90 +22,88 @@ public class DrawController {
 
     @GetMapping("/")
     public String overview(Model model) {
+        addOverviewDataToModel(model);
+        return "overview";
+    }
+
+    private void addOverviewDataToModel(final Model model) {
         model.addAttribute("vysledky", drawService.getResults());
         model.addAttribute("ceny", drawService.getAvailablePrizes());
-        model.addAttribute("lide", drawService.getAllPeople());
+//        model.addAttribute("lide", drawService.getAllPeople());
         model.addAttribute("eligibleWithoutPrizePairs", drawService.getEligiblePairs(true));
         model.addAttribute("eligibleAllPairs", drawService.getEligiblePairs(false));
-        model.addAttribute("nextPrize", drawService.getNextPrizeName().orElse(null));
-        return "overview";
     }
 
     @GetMapping("/api/preview")
     @ResponseBody
-    public ResponseEntity<?> apiPreview(@RequestParam("mode") String mode) {
-        Optional<DrawService.PreviewDTO> dto = switch (mode) {
-            case "available" -> drawService.previewAvailableServerDriven();
-            case "all" -> drawService.previewAllServerDriven();
-            default -> Optional.empty();
-        };
+    public ResponseEntity<?> apiPreview(@RequestParam("mode") String mode,
+                                        @RequestParam("prizeId") Long prizeId) {
+        boolean onlyWithoutPrize = "available".equals(mode);
+        Optional<DrawService.PreviewDTO> dto = drawService.previewForPrize(prizeId, onlyWithoutPrize);
         return dto.<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.badRequest().body("No preview available"));
     }
 
     @PostMapping("/losovat")
     public String draw(@RequestParam(value = "previewPersonId", required = false) Long previewPersonId,
+                       @RequestParam(value = "selectedPrizeId", required = false) Long selectedPrizeId,
                        Model model) {
-        Optional<Prize> nextPrizeOpt = drawService.getNextAvailablePrize();
-        if (nextPrizeOpt.isPresent() && previewPersonId != null) {
+        Optional<Prize> prizeOpt = drawService.findPrizeById(selectedPrizeId);
+        if (prizeOpt.isPresent() && previewPersonId != null) {
             Optional<Person> personOpt = drawService.findPersonById(previewPersonId, true);
             if (personOpt.isPresent()) {
-                DrawResult r = new DrawResult(personOpt.get(), nextPrizeOpt.get());
+                DrawResult r = new DrawResult(personOpt.get(), prizeOpt.get());
                 model.addAttribute("vyherce", r.getClovek());
-                model.addAttribute("vyherceId", r.getPerson().getId());
                 model.addAttribute("cena", r.getCena());
-                model.addAttribute("cenaId", r.getPrize().getId());
                 model.addAttribute("moznaJmena", drawService.getEligibleNames(true));
+                model.addAttribute("vyherceId", personOpt.get().getId());
+                model.addAttribute("cenaId", prizeOpt.get().getId());
                 model.addAttribute("vysledky", drawService.getResults());
                 return "winnerPage";
             }
         }
 
-        // fallback
         Optional<DrawResult> preview = drawService.previewSequentialFromAvailable();
         model.addAttribute("moznaJmena", drawService.getEligibleNames(true));
-        model.addAttribute("cena", drawService.getNextPrizeName().orElse("N/A"));
         model.addAttribute("vyherce", preview.map(DrawResult::getClovek).orElse("N/A"));
+        model.addAttribute("cena", preview.map(DrawResult::getCena).orElse("N/A"));
+        // když je fallback, person/prize ID neznáme – winnerPage pošle starý způsob (nebo nedovolí potvrzení)
         return "winnerPage";
     }
 
     @PostMapping("/losovat-ze-vsech")
     public String drawFromAll(@RequestParam(value = "previewPersonId", required = false) Long previewPersonId,
+                              @RequestParam(value = "selectedPrizeId", required = false) Long selectedPrizeId,
                               Model model) {
-        Optional<Prize> nextPrizeOpt = drawService.getNextAvailablePrize();
-        if (nextPrizeOpt.isPresent() && previewPersonId != null) {
+        Optional<Prize> prizeOpt = drawService.findPrizeById(selectedPrizeId);
+        if (prizeOpt.isPresent() && previewPersonId != null) {
             Optional<Person> personOpt = drawService.findPersonById(previewPersonId, false);
             if (personOpt.isPresent()) {
-                DrawResult r = new DrawResult(personOpt.get(), nextPrizeOpt.get());
+                DrawResult r = new DrawResult(personOpt.get(), prizeOpt.get());
                 model.addAttribute("vyherce", r.getClovek());
-                model.addAttribute("vyherceId", r.getPerson().getId());
                 model.addAttribute("cena", r.getCena());
-                model.addAttribute("cenaId", r.getPrize().getId());
                 model.addAttribute("moznaJmena", drawService.getEligibleNames(false));
+                model.addAttribute("vyherceId", personOpt.get().getId());
+                model.addAttribute("cenaId", prizeOpt.get().getId());
                 model.addAttribute("vysledky", drawService.getResults());
                 return "winnerPage";
             }
         }
 
-        // fallback
         Optional<DrawResult> preview = drawService.previewSequentialFromAll();
         model.addAttribute("moznaJmena", drawService.getEligibleNames(false));
-        model.addAttribute("cena", drawService.getNextPrizeName().orElse("N/A"));
         model.addAttribute("vyherce", preview.map(DrawResult::getClovek).orElse("N/A"));
+        model.addAttribute("cena", preview.map(DrawResult::getCena).orElse("N/A"));
         return "winnerPage";
     }
 
+    // NOVÉ: potvrzení výsledku podle ID
     @PostMapping("/potvrdit")
-    public String confirm(@RequestParam("vyherceId") Long vyherceId,
-                          @RequestParam("cenaId") Long cenaId,
-                          Model model) {
-        drawService.confirmResult(vyherceId, cenaId);
-        model.addAttribute("vysledky", drawService.getResults());
-        model.addAttribute("ceny", drawService.getAvailablePrizes());
-        model.addAttribute("lide", drawService.getAllPeople());
-        model.addAttribute("eligibleWithoutPrizePairs", drawService.getEligiblePairs(true));
-        model.addAttribute("eligibleAllPairs", drawService.getEligiblePairs(false));
-        model.addAttribute("nextPrize", drawService.getNextPrizeName().orElse(null));
+    public String confirmByIds(@RequestParam("personId") Long personId,
+                               @RequestParam("prizeId") Long prizeId,
+                               Model model) {
+        drawService.confirmResultByIds(personId, prizeId);
+        addOverviewDataToModel(model);
         return "overview";
     }
 

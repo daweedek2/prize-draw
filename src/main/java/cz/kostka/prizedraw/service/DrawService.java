@@ -15,7 +15,7 @@ import java.util.*;
 public class DrawService {
 
     public record EligiblePersonDTO(Long id, String name) {}
-    public record PreviewDTO(Long personId, String name, String prizeName) {}
+    public record PreviewDTO(Long personId, String name, Long prizeId, String prizeName) {}
 
     private final PersonRepository personRepository;
     private final PrizeRepository prizeRepository;
@@ -51,28 +51,28 @@ public class DrawService {
         return prizeRepository.findFirstByAssignedFalseOrderByOrderIndexDesc();
     }
 
-    public List<DrawResult> getResults() { return drawResultRepository.findAll(); }
-
-    // Serverem řízený preview
-    public Optional<PreviewDTO> previewAvailableServerDriven() {
-        Optional<Prize> nextPrizeOpt = getNextAvailablePrize();
-        List<Person> eligiblePeople = getPeopleWithoutPrize();
-        if (nextPrizeOpt.isEmpty() || eligiblePeople.isEmpty()) return Optional.empty();
-        Prize currentPrize = nextPrizeOpt.get();
-        Person winner = eligiblePeople.get(random.nextInt(eligiblePeople.size()));
-        return Optional.of(new PreviewDTO(winner.getId(), winner.getJmeno(), currentPrize.getDisplayName()));
+    public Optional<Prize> findPrizeById(Long prizeId) {
+        if (prizeId == null) return Optional.empty();
+        return prizeRepository.findById(prizeId).filter(p -> !p.isAssigned());
     }
 
-    public Optional<PreviewDTO> previewAllServerDriven() {
-        Optional<Prize> nextPrizeOpt = getNextAvailablePrize();
-        List<Person> people = personRepository.findAll();
-        if (nextPrizeOpt.isEmpty() || people.isEmpty()) return Optional.empty();
-        Prize currentPrize = nextPrizeOpt.get();
-        Person winner = people.get(random.nextInt(people.size()));
-        return Optional.of(new PreviewDTO(winner.getId(), winner.getJmeno(), currentPrize.getDisplayName()));
+    public List<DrawResult> getResults() { return drawResultRepository.findAll()
+            .stream()
+            .sorted(Comparator.comparingInt(result -> result.getPrize().getOrderIndex()))
+            .toList();
     }
 
-    // Fallback preview (původní logika) — doplněno, aby controller kompiloval
+    // Serverem řízený preview pro konkrétní cenu
+    public Optional<PreviewDTO> previewForPrize(Long prizeId, boolean onlyWithoutPrize) {
+        Optional<Prize> prizeOpt = findPrizeById(prizeId);
+        List<Person> pool = onlyWithoutPrize ? getPeopleWithoutPrize() : personRepository.findAll();
+        if (prizeOpt.isEmpty() || pool.isEmpty()) return Optional.empty();
+        Prize prize = prizeOpt.get();
+        Person winner = pool.get(random.nextInt(pool.size()));
+        return Optional.of(new PreviewDTO(winner.getId(), winner.getJmeno(), prize.getId(), prize.getNazev()));
+    }
+
+    // Fallback preview
     public Optional<DrawResult> previewSequentialFromAvailable() {
         Optional<Prize> nextPrizeOpt = getNextAvailablePrize();
         List<Person> eligiblePeople = getPeopleWithoutPrize();
@@ -91,16 +91,19 @@ public class DrawService {
         return Optional.of(new DrawResult(winner, currentPrize));
     }
 
+    // NOVÉ: potvrzení výsledku podle ID
     @Transactional
-    public Optional<DrawResult> confirmResult(Long vyherceId, Long cenaId) {
-        Optional<Person> personOpt = personRepository.findById(vyherceId);
-        Optional<Prize> prizeOpt = prizeRepository.findById(cenaId);
+    public Optional<DrawResult> confirmResultByIds(Long personId, Long prizeId) {
+        if (personId == null || prizeId == null) return Optional.empty();
 
-        if (personOpt.isEmpty() || prizeOpt.isEmpty()) {
-            return Optional.empty();
-        }
+        Optional<Person> personOpt = personRepository.findById(personId);
+        Optional<Prize> prizeOpt = prizeRepository.findById(prizeId);
+
+        if (personOpt.isEmpty() || prizeOpt.isEmpty()) return Optional.empty();
 
         Prize prize = prizeOpt.get();
+        if (prize.isAssigned()) return Optional.empty(); // ochrana proti dvojímu přiřazení
+
         prize.setAssigned(true);
         prizeRepository.save(prize);
 

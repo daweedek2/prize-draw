@@ -6,30 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <link rel="stylesheet" th:href="@{/css/styles.css}">
     <style>
-        /* Reveal overlay styles */
-        .reveal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-            display: none; align-items: center; justify-content: center;
-            z-index: 9999; padding: 16px;
-        }
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+        .prize-list { list-style: none; padding: 0; margin: 12px 0; background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+        .prize-item { padding: 10px 16px; border-bottom: 1px solid #ddd; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .prize-item:last-child { border-bottom: none; }
+        .prize-item:hover { background: #eef6ff; }
+        .prize-item.selected { background: #fff3cd; border-left: 4px solid #ffb300; }
+        .prize-order { font-weight: 700; color: #005bbb; min-width: 60px; }
+        .selected-info { text-align: center; margin-top: 8px; color: #555; }
+        .reveal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 9999; padding: 16px; }
         .reveal-overlay.open { display: flex; }
-        .reveal-card {
-            background: #fff; border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,0.25);
-            padding: 22px; width: 96vw; max-width: 520px; text-align: center; position: relative;
-            border: 3px solid #ffb300;
-        }
+        .reveal-card { background: #fff; border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,0.25); padding: 22px; width: 96vw; max-width: 520px; text-align: center; position: relative; border: 3px solid #ffb300; }
         .reveal-title { font-size: 18px; color: #666; margin: 0 0 8px; }
-        .reveal-name {
-            font-size: clamp(26px, 6.4vw, 36px); font-weight: 800; letter-spacing: 0.4px; margin: 6px 0 10px; color: #111;
-        }
-        .reveal-prize {
-            font-size: 16px; color: #555; margin-top: 6px;
-        }
-        .reveal-spinner {
-            width: 54px; height: 54px; border-radius: 50%; border: 5px solid #eee; border-top-color: #005bbb;
-            margin: 12px auto 0; animation: spin 0.9s linear infinite;
-        }
+        .reveal-name { font-size: clamp(26px, 6.4vw, 36px); font-weight: 800; letter-spacing: 0.4px; margin: 6px 0 10px; color: #111; }
+        .reveal-prize { font-size: 16px; color: #555; margin-top: 6px; }
+        .reveal-spinner { width: 54px; height: 54px; border-radius: 50%; border: 5px solid #eee; border-top-color: #005bbb; margin: 12px auto 0; animation: spin 0.9s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .hint { text-align:center; color:#777; font-size:14px; margin-top:6px;}
     </style>
 </head>
 <body>
@@ -58,15 +51,22 @@
 
 <section>
     <h2>Dostupné ceny</h2>
-    <p th:if="${nextPrize != null}">
-        Aktuální cena k losování: <strong th:text="${nextPrize}"></strong>
-    </p>
-    <p th:if="${nextPrize == null}">
-        Všechny ceny jsou již vylosované. Losování je ukončeno.
-    </p>
-    <ul class="list-responsive" id="available-prizes">
-        <li th:each="c : ${ceny}" th:text="${c.getDisplayName()}"></li>
+    <ul class="prize-list" id="available-prizes">
+        <li class="prize-item"
+            th:each="c : ${ceny}"
+            th:data-id="${c.id}"
+            th:data-order="${c.orderIndex}"
+            th:data-name="${c.nazev}">
+            <span class="prize-order">#<span th:text="${c.orderIndex}"></span></span>
+            <span th:text="${c.nazev}"></span>
+        </li>
     </ul>
+    <div class="selected-info">
+        Vybraná cena: <strong id="selected-prize-label">—</strong>
+    </div>
+    <div class="hint" id="eligible-hint" th:if="${#lists.isEmpty(eligibleWithoutPrizePairs)}">
+        Všichni mají nějakou výhru – "Losovat" nebude dostupné, dokud nepřidáte lidi nebo resetujete výsledky.
+    </div>
 </section>
 
 <!--<section>-->
@@ -79,16 +79,14 @@
 <section class="button-group-center">
     <form th:action="@{/losovat}" method="post" class="inline-form">
         <input type="hidden" name="previewPersonId" id="preview-person-id-available">
-        <button type="submit" id="btn-draw"
-                th:disabled="${nextPrize == null || eligibleWithoutPrizePairs.isEmpty()}"
-                th:attr="aria-disabled=${nextPrize == null || eligibleWithoutPrizePairs.isEmpty()}">Losovat</button>
+        <input type="hidden" name="selectedPrizeId" id="selected-prize-id-available">
+        <button type="submit" id="btn-draw" disabled aria-disabled="true">Losovat</button>
     </form>
 
     <form th:action="@{/losovat-ze-vsech}" method="post" class="inline-form">
         <input type="hidden" name="previewPersonId" id="preview-person-id-all">
-        <button type="submit" id="btn-draw-all"
-                th:disabled="${nextPrize == null || eligibleAllPairs.isEmpty()}"
-                th:attr="aria-disabled=${nextPrize == null || eligibleAllPairs.isEmpty()}">Losovat ze všech</button>
+        <input type="hidden" name="selectedPrizeId" id="selected-prize-id-all">
+        <button type="submit" id="btn-draw-all" disabled aria-disabled="true">Losovat ze všech</button>
     </form>
 </section>
 
@@ -114,7 +112,9 @@
     <div class="reveal-card">
         <div class="reveal-title">Losujeme…</div>
         <div id="reveal-name" class="reveal-name">—</div>
-        <div class="reveal-prize">Cena: <strong th:text="${nextPrize}">—</strong></div>
+        <div class="reveal-prize">
+            Cena: <strong id="reveal-prize-label">—</strong>
+        </div>
         <div class="reveal-spinner"></div>
     </div>
 </div>
@@ -123,6 +123,15 @@
     (function(){
         const overlay = document.getElementById('reveal-overlay');
         const nameEl = document.getElementById('reveal-name');
+        const prizeLabelEl = document.getElementById('reveal-prize-label');
+
+        const btnDraw = document.getElementById('btn-draw');
+        const btnDrawAll = document.getElementById('btn-draw-all');
+        const selectedPrizeIdAvailable = document.getElementById('selected-prize-id-available');
+        const selectedPrizeIdAll = document.getElementById('selected-prize-id-all');
+        const selectedPrizeLabel = document.getElementById('selected-prize-label');
+
+        let selectedPrize = null; // { id, name, order }
 
         function readLabelsAndIdsFrom(elemId) {
             const items = Array.from(document.querySelectorAll('#' + elemId + ' li'));
@@ -134,15 +143,58 @@
         const withoutPairs = readLabelsAndIdsFrom('eligible-without-pairs');
         const allPairs = readLabelsAndIdsFrom('eligible-all-pairs');
 
-        async function fetchPreview(mode) {
-            const res = await fetch(`/api/preview?mode=${encodeURIComponent(mode)}`, { method: 'GET' });
-            if (!res.ok) throw new Error('Preview API failed');
-            return await res.json(); // { personId, name, prizeName }
+        // Výběr cen (kliknutím)
+        const prizeItems = Array.from(document.querySelectorAll('#available-prizes .prize-item'));
+
+        // Pomocná: přepni enable/disable podle podmínek
+        function updateButtonsEnabledState() {
+            const hasSelectedPrize = !!selectedPrize && !!selectedPrize.id;
+            const hasEligibleWithout = (withoutPairs.labels && withoutPairs.labels.length > 0);
+            const hasAnyPrizes = prizeItems.length > 0;
+
+            // Losovat (jen bez výhry) — povoleno pouze při vybrané ceně a existenci lidí bez výhry
+            const enableAvailable = hasSelectedPrize && hasEligibleWithout;
+
+            // Losovat ze všech — povoleno při vybrané ceně a pokud existují nějaké ceny k losování
+            const enableAll = hasSelectedPrize && hasAnyPrizes;
+
+            btnDraw.disabled = !enableAvailable;
+            btnDraw.setAttribute('aria-disabled', String(!enableAvailable));
+
+            btnDrawAll.disabled = !enableAll;
+            btnDrawAll.setAttribute('aria-disabled', String(!enableAll));
         }
 
-        function shuffleReveal(labels, finalName, durationMs = 1200) {
+        prizeItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // zruš předchozí selection
+                prizeItems.forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                selectedPrize = {
+                    id: Number(item.dataset.id),
+                    name: item.dataset.name,
+                    order: Number(item.dataset.order),
+                };
+                selectedPrizeLabel.textContent = `#${selectedPrize.order} — ${selectedPrize.name}`;
+                // vyplň hidden inputs
+                selectedPrizeIdAvailable.value = selectedPrize.id;
+                selectedPrizeIdAll.value = selectedPrize.id;
+                // aktualizuj stav tlačítek
+                updateButtonsEnabledState();
+            });
+        });
+
+        async function fetchPreview(mode, prizeId) {
+            const params = new URLSearchParams({ mode, prizeId });
+            const res = await fetch(`/api/preview?${params.toString()}`, { method: 'GET' });
+            if (!res.ok) throw new Error('Preview API failed');
+            return await res.json(); // { personId, name, prizeId, prizeName }
+        }
+
+        function shuffleReveal(labels, finalName, prizeName, durationMs = 1200) {
             if (!labels || labels.length === 0) return;
             overlay.classList.add('open');
+            prizeLabelEl.textContent = prizeName || '—';
             const start = performance.now();
             function step(now) {
                 const t = Math.min(1, (now - start) / durationMs);
@@ -152,20 +204,20 @@
                     requestAnimationFrame(step);
                 } else {
                     nameEl.textContent = finalName || '—';
-                    setTimeout(() => { /* krátká pauza před submitem */ }, 100);
+                    setTimeout(() => { /* krátká pauza */ }, 100);
                 }
             }
             requestAnimationFrame(step);
         }
 
-        function runServerDriven(mode, pairs, form, hiddenInputEl) {
-            const { labels, ids } = pairs;
+        function runServerDriven(mode, pairs, form, hiddenInputEl, prizeId) {
+            if (!selectedPrize || !prizeId) return; // bezpečnost
+            const { labels } = pairs;
             if (!labels || labels.length === 0) { form.submit(); return; }
 
-            fetchPreview(mode)
-                .then(({ personId, name }) => {
-                    shuffleReveal(labels, name);
-                    // vyplň ID a odešli po krátké pauze (shoda s BE garantována)
+            fetchPreview(mode, prizeId)
+                .then(({ personId, name, prizeName }) => {
+                    shuffleReveal(labels, name, prizeName);
                     hiddenInputEl.value = Number(personId) || '';
                     setTimeout(() => {
                         overlay.classList.remove('open');
@@ -180,20 +232,31 @@
         const hiddenAvailable = document.getElementById('preview-person-id-available');
         const hiddenAll = document.getElementById('preview-person-id-all');
 
-        const hasAvailablePrize = /*[[${nextPrize != null}]]*/ false;
-
-        if (hasAvailablePrize && drawForm) {
+        if (drawForm) {
             drawForm.addEventListener('submit', function(ev) {
+                // Guard: Losovat je povoleno pouze při vybrané ceně a existenci lidí bez výhry
+                const hasSelectedPrize = !!selectedPrize && !!selectedPrize.id;
+                const hasEligibleWithout = (withoutPairs.labels && withoutPairs.labels.length > 0);
+                const canDrawAvailable = hasSelectedPrize && hasEligibleWithout;
+                if (!canDrawAvailable) return;
                 ev.preventDefault();
-                runServerDriven('available', withoutPairs, this, hiddenAvailable);
+                runServerDriven('available', withoutPairs, this, hiddenAvailable, selectedPrize.id);
             });
         }
-        if (hasAvailablePrize && drawAllForm) {
+        if (drawAllForm) {
             drawAllForm.addEventListener('submit', function(ev) {
+                // Guard: Losovat ze všech je povoleno při vybrané ceně a existenci nějakých cen
+                const hasSelectedPrize = !!selectedPrize && !!selectedPrize.id;
+                const hasAnyPrizes = prizeItems.length > 0;
+                const canDrawAll = hasSelectedPrize && hasAnyPrizes;
+                if (!canDrawAll) return;
                 ev.preventDefault();
-                runServerDriven('all', allPairs, this, hiddenAll);
+                runServerDriven('all', allPairs, this, hiddenAll, selectedPrize.id);
             });
         }
+
+        // Inicializace: nastav disabled stav při načtení
+        updateButtonsEnabledState();
     })();
 </script>
 

@@ -28,11 +28,16 @@
 </div>
 
 <section class="button-group-center" style="margin-top:22px;">
-    <!-- potvrdit -->
-    <form th:action="@{/potvrdit}" method="post" class="inline-form">
-        <input type="hidden" name="cenaId" th:value="${cenaId}">
-        <input type="hidden" name="vyherceId" th:value="${vyherceId}">
+    <!-- potvrdit pomocí ID -->
+    <form th:action="@{/potvrdit}" method="post" class="inline-form" th:if="${vyherceId != null && cenaId != null}">
+        <input type="hidden" name="personId" th:value="${vyherceId}">
+        <input type="hidden" name="prizeId" th:value="${cenaId}">
         <button type="submit" class="button-success">Potvrdit</button>
+    </form>
+
+    <!-- pokud ID nejsou k dispozici (fallback), skryj potvrzení nebo ponech starou variantu dle potřeby -->
+    <form th:if="${vyherceId == null || cenaId == null}" class="inline-form">
+        <button type="button" class="button-secondary" disabled aria-disabled="true" title="Nelze potvrdit bez ID">Potvrdit</button>
     </form>
 
     <!-- losovat znovu -->
@@ -61,7 +66,23 @@
     </div>
 </section>
 
-<!-- Confetti -->
+<!--<script th:inline="javascript">-->
+<!--    function startShuffleAnimation(elementId, values, duration = 20) {-->
+<!--        const el = document.getElementById(elementId);-->
+<!--        if (!el || !values || values.length === 0) return;-->
+<!--        let counter = 0;-->
+<!--        const interval = setInterval(() => {-->
+<!--            el.textContent = values[Math.floor(Math.random() * values.length)];-->
+<!--            counter++;-->
+<!--            if (counter > duration) {-->
+<!--                clearInterval(interval);-->
+<!--            }-->
+<!--        }, 80);-->
+<!--    }-->
+<!--    const moznaJmena = /*[[${moznaJmena}]]*/ [];-->
+<!--    if (moznaJmena.length > 0) startShuffleAnimation("vyherceText", moznaJmena);-->
+<!--</script>-->
+
 <script>
     function confetti() {
         const total = 120;
