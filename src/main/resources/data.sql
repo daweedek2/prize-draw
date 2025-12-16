@@ -20,6 +20,12 @@ INSERT INTO person (jmeno) VALUES ('a_d_a_m_s');
 INSERT INTO person (jmeno) VALUES ('VitaL9');
 INSERT INTO person (jmeno) VALUES ('Sonule');
 INSERT INTO person (jmeno) VALUES ('KočičáciZlín');
+INSERT INTO person (jmeno) VALUES ('Alda234');
+INSERT INTO person (jmeno) VALUES ('Prucíci');
+INSERT INTO person (jmeno) VALUES ('sokol1');
+INSERT INTO person (jmeno) VALUES ('tomrachunek');
+INSERT INTO person (jmeno) VALUES ('Vandráček');
+INSERT INTO person (jmeno) VALUES ('BorecXXL');
 
 -- ==== PRIZES (orderIndex defines draw order; lower number = earlier) ====
 -- Additional prizes
