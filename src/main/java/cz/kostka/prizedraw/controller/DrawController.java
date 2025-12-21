@@ -7,7 +7,10 @@ import cz.kostka.prizedraw.service.DrawService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.Optional;
 
@@ -48,6 +51,8 @@ public class DrawController {
     public String draw(@RequestParam(value = "previewPersonId", required = false) Long previewPersonId,
                        @RequestParam(value = "selectedPrizeId", required = false) Long selectedPrizeId,
                        Model model) {
+        System.out.printf("'Losovat' called with previewPersonId=%s and selectedPrizeId=%s\n", previewPersonId, selectedPrizeId);
+
         Optional<Prize> prizeOpt = drawService.findPrizeById(selectedPrizeId);
         if (prizeOpt.isPresent() && previewPersonId != null) {
             Optional<Person> personOpt = drawService.findPersonById(previewPersonId, true);
@@ -75,6 +80,8 @@ public class DrawController {
     public String drawFromAll(@RequestParam(value = "previewPersonId", required = false) Long previewPersonId,
                               @RequestParam(value = "selectedPrizeId", required = false) Long selectedPrizeId,
                               Model model) {
+        System.out.printf("'Losovat ze vsech' called with previewPersonId=%s and selectedPrizeId=%s\n", previewPersonId, selectedPrizeId);
+
         Optional<Prize> prizeOpt = drawService.findPrizeById(selectedPrizeId);
         if (prizeOpt.isPresent() && previewPersonId != null) {
             Optional<Person> personOpt = drawService.findPersonById(previewPersonId, false);
@@ -102,6 +109,8 @@ public class DrawController {
     public String confirmByIds(@RequestParam("personId") Long personId,
                                @RequestParam("prizeId") Long prizeId,
                                Model model) {
+        System.out.printf("'Potvrdit' called with personId=%s and prizeId=%s\n", personId, prizeId);
+
         drawService.confirmResultByIds(personId, prizeId);
         addOverviewDataToModel(model);
         return "overview";
