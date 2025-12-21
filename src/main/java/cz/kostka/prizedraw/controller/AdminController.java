@@ -29,7 +29,7 @@ public class AdminController {
 
     @GetMapping("/people")
     public String peopleAdmin(Model model) {
-        model.addAttribute("people", personRepository.findAll());
+        model.addAttribute("people", personRepository.findAllByOrderByIdAsc());
         model.addAttribute("newPerson", new Person());
         return "person_admin";
     }

@@ -9,6 +9,7 @@ import cz.kostka.prizedraw.repository.PrizeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -109,6 +110,8 @@ public class DrawService {
 
         DrawResult result = new DrawResult(personOpt.get(), prize);
         drawResultRepository.save(result);
+
+        System.out.printf("[%s]: Confirmed draw result: Person %s (%s) won Prize %s\n", LocalDateTime.now(), personOpt.get().getJmeno(), personId, prize.getNazev());
 
         return Optional.of(result);
     }
