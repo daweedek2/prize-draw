@@ -26,6 +26,11 @@ INSERT INTO person (jmeno) VALUES ('sokol1');
 INSERT INTO person (jmeno) VALUES ('tomrachunek');
 INSERT INTO person (jmeno) VALUES ('Vandráček');
 INSERT INTO person (jmeno) VALUES ('BorecXXL');
+INSERT INTO person (jmeno) VALUES ('Shrek9');
+INSERT INTO person (jmeno) VALUES ('Chillie-M');
+INSERT INTO person (jmeno) VALUES ('Makules');
+INSERT INTO person (jmeno) VALUES ('xai');
+INSERT INTO person (jmeno) VALUES ('tulen2');
 
 -- ==== PRIZES (orderIndex defines draw order; lower number = earlier) ====
 -- Additional prizes
